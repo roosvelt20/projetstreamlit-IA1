@@ -67,17 +67,17 @@ def generate_recommendations(total_sales, sales_by_channel, sales_by_region):
 
     # Recommandations basées sur les ventes totales par produit
     max_product_sales = total_sales.idxmax()
-    recommendations.append(f"Le produit le plus vendu est {max_product_sales}. Beans & Pods devrait concentrer ses efforts marketing sur ce produit pour augmenter les ventes.")
+    recommendations.append(f"Le produit le plus vendu est {max_product_sales}. il faudra faire une campagne dans cette zone pour augmenter les vent.")
 
     # Recommandations basées sur les ventes par canal
     if sales_by_channel is not None:
         max_channel_sales = sales_by_channel.sum(axis=1).idxmax()
-        recommendations.append(f"Le canal de vente le plus performant est {max_channel_sales}. Une campagne marketing ciblée pour ce canal pourrait augmenter les ventes.")
+        recommendations.append(f"Le canal de vente le plus performant est {max_channel_sales}.pour augmenter les ventes onr devrait faire une campagne de marketing.")
 
     # Recommandations basées sur les ventes par région
     if sales_by_region is not None:
         max_region_sales = sales_by_region.sum(axis=1).idxmax()
-        recommendations.append(f"La région la plus performante est {max_region_sales}. Beans & Pods pourrait intensifier sa présence marketing dans cette région.")
+        recommendations.append(f"La région la plus performante est {max_region_sales}. Beans & Pods devrait s'installer plus dans cette zone.")
 
     return recommendations
 
@@ -91,84 +91,80 @@ def suggest_additional_data():
     ]
     return suggestions
 
-# Application Streamlit
-def main():
-    st.markdown(
-        """
-        <div style='text-align:center'>
-        <h1> Statistiques descriptives et Analyse de données </h1>
-        </div>
-        """,unsafe_allow_html=True
-    )
+# Application Streamlit (sans la fonction main())
+st.markdown(
+    """
+    <div style='text-align:center'>
+    <h1> Statistiques descriptives et Analyse de données </h1>
+    </div>
+    """, unsafe_allow_html=True
+)
 
-    # Sidebar
-    st.sidebar.title("Menu")
-    page = st.sidebar.radio("Choisir une option", ["Accueil", "Analyse des Ventes", "Peek at the Data", "Visualisation"])
+# Sidebar
+st.sidebar.title("Menu")
+page = st.sidebar.radio("Choisir une option", ["Accueil", "Analyse des Ventes", "Peek at the Data", "Visualisation"])
+
+# Multiselect pour choisir les filtres (canaux et/ou régions) dans le menu
+selected_filters = st.sidebar.multiselect(
+    "Choisissez les critères d'analyse",
+    ["Canal", "Région"],
+    default=["Canal", "Région"]
+)
+
+if page == "Accueil":
+    st.subheader('Affichage des données des ventes de Beans & Pods')
+    data = load_data()
+    st.dataframe(data)
+
+elif page == "Peek at the Data":
+    st.subheader('Aperçu des 10 premières lignes')
+    data = load_data()
+    st.dataframe(data.head(10))
+
+    # Calcul du nombre de produits vendus par class
+    st.subheader('Répartition des ventes par produit')
+    st.write(data[['Robusta', 'Arabica', 'Espresso', 'Lungo', 'Latte', 'Cappuccino']].sum())
+
+    # Affichage des graphiques de répartition des ventes par produit
+    st.subheader('Graphiques des ventes totales par produit')
+    total_sales, _, _ = analyze_data(data, selected_filters)
+    plot_sales_data(total_sales, None, None)
+
+elif page == "Visualisation":
+    st.subheader('Graphiques des ventes')
+    data = load_data()
+    total_sales, sales_by_channel, sales_by_region = analyze_data(data, selected_filters)
+
+    # Créer un graphique pour les ventes en ligne vs en magasin
+    sales_by_online_store = data.groupby('Channel')[['Robusta', 'Arabica', 'Espresso', 'Lungo', 'Latte', 'Cappuccino']].sum()
+    online_store_sales = sales_by_online_store.loc[['Online', 'Store']].sum(axis=1)  # Prendre les ventes en ligne et en magasin
+    plot_sales_data(total_sales, sales_by_channel, sales_by_region, online_store_sales)
+
+elif page == "Analyse des Ventes":
+    st.title("Analyse des Ventes de Beans & Pods")
     
-    # Multiselect pour choisir les filtres (canaux et/ou régions) dans le menu
-    selected_filters = st.sidebar.multiselect(
-        "Choisissez les critères d'analyse",
-        ["Canal", "Région"],
-        default=["Canal", "Région"]
-    )
+    # Charger les données
+    data = load_data()
+    
+    st.write("### Aperçu des Données")
+    st.write(data.head())
+    
+    # Analyse des données en fonction des filtres sélectionnés
+    total_sales, sales_by_channel, sales_by_region = analyze_data(data, selected_filters)
+    
+    # Visualisation des résultats
+    st.write("### Graphiques des Ventes")
+    plot_sales_data(total_sales, sales_by_channel, sales_by_region)
+    
+    # Recommandations
+    st.write("### Recommandations")
+    recommendations = generate_recommendations(total_sales, sales_by_channel, sales_by_region)
+    for rec in recommendations:
+        st.write(f"- {rec}")
+    
+    # Suggestions de collecte de données futures
+    st.write("### Suggestions pour l'Avenir")
+    additional_data_suggestions = suggest_additional_data()
+    for suggestion in additional_data_suggestions:
+        st.write(f"- {suggestion}")
 
-    if page == "Accueil":
-        st.subheader('Affichage des données des ventes de Beans & Pods')
-        data = load_data()
-        st.dataframe(data)
-
-    elif page == "Peek at the Data":
-        st.subheader('Aperçu des 10 premières lignes')
-        data = load_data()
-        st.dataframe(data.head(10))
-
-        # Calcul du nombre de produits vendus par class
-        st.subheader('Répartition des ventes par produit')
-        st.write(data[['Robusta', 'Arabica', 'Espresso', 'Lungo', 'Latte', 'Cappuccino']].sum())
-
-        # Affichage des graphiques de répartition des ventes par produit
-        st.subheader('Graphiques des ventes totales par produit')
-        total_sales, _, _ = analyze_data(data, selected_filters)
-        plot_sales_data(total_sales, None, None)
-
-    elif page == "Visualisation":
-        st.subheader('Graphiques des ventes')
-        data = load_data()
-        total_sales, sales_by_channel, sales_by_region = analyze_data(data, selected_filters)
-
-        # Créer un graphique pour les ventes en ligne vs en magasin
-        sales_by_online_store = data.groupby('Channel')[['Robusta', 'Arabica', 'Espresso', 'Lungo', 'Latte', 'Cappuccino']].sum()
-        online_store_sales = sales_by_online_store.loc[['Online', 'Store']].sum(axis=1)  # Prendre les ventes en ligne et en magasin
-        plot_sales_data(total_sales, sales_by_channel, sales_by_region, online_store_sales)
-
-    elif page == "Analyse des Ventes":
-        st.title("Analyse des Ventes de Beans & Pods")
-        
-        # Charger les données
-        data = load_data()
-        
-        st.write("### Aperçu des Données")
-        st.write(data.head())
-        
-        # Analyse des données en fonction des filtres sélectionnés
-        total_sales, sales_by_channel, sales_by_region = analyze_data(data, selected_filters)
-        
-        # Visualisation des résultats
-        st.write("### Graphiques des Ventes")
-        plot_sales_data(total_sales, sales_by_channel, sales_by_region)
-        
-        # Recommandations
-        st.write("### Recommandations")
-        recommendations = generate_recommendations(total_sales, sales_by_channel, sales_by_region)
-        for rec in recommendations:
-            st.write(f"- {rec}")
-        
-        # Suggestions de collecte de données futures
-        st.write("### Suggestions pour l'Avenir")
-        additional_data_suggestions = suggest_additional_data()
-        for suggestion in additional_data_suggestions:
-            st.write(f"- {suggestion}")
-
-# Lancer l'application Streamlit
-if __name__ == "__main__":
-    main()
